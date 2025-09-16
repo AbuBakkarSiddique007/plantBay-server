@@ -52,6 +52,7 @@ async function run() {
   try {
     const database = client.db('PlantBayDB')
     const usersCollection = database.collection('users')
+    const plantsCollection = database.collection('plants')
 
 
 
@@ -85,6 +86,9 @@ async function run() {
       }
     })
 
+    /**
+     * Users Api
+     */
     // 1. Save or Update users in db
     app.post('/users/:email', async (req, res) => {
       const email = req.params.email
@@ -107,6 +111,18 @@ async function run() {
         })
       res.send(result)
     })
+
+
+    /**
+     * Plants Api
+     */
+    // 2. Save plants data in db
+    app.post('/plants', async(req, res)=>{
+      const plant = req.body
+      const result = await plantsCollection.insertOne(plant)
+      res.send(result)
+    })
+
 
 
 
