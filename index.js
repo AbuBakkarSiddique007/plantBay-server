@@ -50,6 +50,11 @@ const client = new MongoClient(uri, {
 })
 async function run() {
   try {
+    const database = client.db('PlantBayDB')
+    const usersCollection = database.collection('users')
+
+
+
     // Generate jwt token
     app.post('/jwt', async (req, res) => {
       const email = req.body
@@ -79,6 +84,33 @@ async function run() {
         res.status(500).send(err)
       }
     })
+
+    // 1. Save or Update users in db
+    app.post('/users/:email', async (req, res) => {
+      const email = req.params.email
+      const user = req.body
+
+      const filter = { email }
+
+      // check user exists in db
+      const isExist = await usersCollection.findOne(filter)
+      if (isExist) {
+        return res.send({ message: "User Already exist.", isExist })
+      }
+
+      const result = await usersCollection.insertOne(
+        {
+          ...user,
+          role: 'customer',
+          timeStamp: Date.now()
+
+        })
+      res.send(result)
+    })
+
+
+
+
 
     // Send a ping to confirm a successful connection
     await client.db('admin').command({ ping: 1 })
