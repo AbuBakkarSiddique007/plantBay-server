@@ -117,9 +117,14 @@ async function run() {
      * Plants Api
      */
     // 2. Save plants data in db
-    app.post('/plants', async(req, res)=>{
+    app.post('/plants', async (req, res) => {
       const plant = req.body
       const result = await plantsCollection.insertOne(plant)
+      res.send(result)
+    })
+
+    app.get('/plants', async (req, res) => {
+      const result = await plantsCollection.find().toArray()
       res.send(result)
     })
 
