@@ -128,6 +128,14 @@ async function run() {
       res.send(result)
     })
 
+    app.get("/plants/:id", async (req, res) => {
+      const id = req.params.id
+      const filter = { _id: new ObjectId(id) }
+
+      const result = await plantsCollection.findOne(filter)
+      res.send(result)
+    })
+
 
 
 
