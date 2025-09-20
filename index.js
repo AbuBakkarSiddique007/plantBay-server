@@ -53,6 +53,7 @@ async function run() {
     const database = client.db('PlantBayDB')
     const usersCollection = database.collection('users')
     const plantsCollection = database.collection('plants')
+    const ordersCollection = database.collection('orders')
 
 
 
@@ -136,9 +137,32 @@ async function run() {
       res.send(result)
     })
 
+    /**
+     * Orders Api
+     */
+    // 3. Save orders data in db
+    app.post('/orders', verifyToken, async (req, res) => {
+      const order = req.body
+      console.log(order);
+      const result = await ordersCollection.insertOne(order)
+      res.send(result)
+    })
 
+    // Manage plant quantity (increment/decrement)
+    app.patch('/plants/quantity/:id', async (req, res) => {
+      const id = req.params.id
+      const { quantityToUpdate } = req.body
 
+      const filter = { _id: new ObjectId(id) }
+      const updateDoc = {
+        $inc: {
+          quantity: -quantityToUpdate
+        }
+      }
 
+      const result = await plantsCollection.updateOne(filter, updateDoc)
+      res.send(result)
+    })
 
 
     // Send a ping to confirm a successful connection
