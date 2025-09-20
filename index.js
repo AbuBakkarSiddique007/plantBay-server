@@ -164,6 +164,59 @@ async function run() {
       res.send(result)
     })
 
+    /**
+     * Customer Orders Api
+     */
+    // 4. Get all orders of a specific customer
+    app.get('/customers-orders/:email', async (req, res) => {
+      const email = req.params.email;
+      const filter = { 'userInfo.email': email };
+
+      const result = await ordersCollection.aggregate([
+        {
+          $match: filter
+        },
+        {
+          $addFields:
+          {
+            plantId:
+            {
+              $toObjectId: "$plantInfo.plantId"
+
+            }
+          }
+        },
+        {
+          $lookup: {
+            from: 'plants',
+            localField: 'plantId',
+            foreignField: '_id',
+            as: 'plantDoc'
+          }
+        },
+        {
+          $unwind: "$plantDoc"
+        },
+        {
+          $addFields: {
+            image: "$plantDoc.image",
+            name: "$plantDoc.name",
+            category: "$plantDoc.category",
+            price: "$plantDoc.price",
+            quantity: "$plantInfo.totalQuantity"
+          }
+        },
+        {
+          $project: {
+            plantDoc: 0,
+            plantInfo: 0
+          }
+        }
+      ]).toArray();
+
+      res.send(result);
+    })
+
 
     // Send a ping to confirm a successful connection
     await client.db('admin').command({ ping: 1 })
