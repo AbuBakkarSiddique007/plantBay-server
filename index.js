@@ -151,12 +151,22 @@ async function run() {
     // Manage plant quantity (increment/decrement)
     app.patch('/plants/quantity/:id', async (req, res) => {
       const id = req.params.id
-      const { quantityToUpdate } = req.body
+      const { quantityToUpdate, status } = req.body
+
+      console.log("ID:", id);
+      console.log("Quantity to update:", quantityToUpdate);
+      console.log("Status:", status);
 
       const filter = { _id: new ObjectId(id) }
+      let incValue = -quantityToUpdate;
+
+      if (status === 'increase') {
+        incValue = quantityToUpdate;
+      }
+
       const updateDoc = {
         $inc: {
-          quantity: -quantityToUpdate
+          quantity: incValue
         }
       }
 
@@ -209,12 +219,28 @@ async function run() {
         {
           $project: {
             plantDoc: 0,
-            plantInfo: 0
+            // plantInfo: 0
           }
         }
       ]).toArray();
 
       res.send(result);
+    })
+
+    // Handle delete order by id
+    app.delete('/orders/:id', async (req, res) => {
+      const id = req.params.id
+      const filter = { _id: new ObjectId(id) }
+
+      const order = await ordersCollection.findOne(filter)
+      console.log("Current order status:", order.status);
+
+      if (order.status === 'Delivered') {
+        return res.status(409).send({ message: 'You can not delete delivered order' })
+      }
+
+      const result = await ordersCollection.deleteOne(filter)
+      res.send(result)
     })
 
 
