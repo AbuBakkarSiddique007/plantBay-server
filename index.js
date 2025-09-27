@@ -113,7 +113,42 @@ async function run() {
       res.send(result)
     })
 
+    /**
+     * Manage Users role
+     */
+    app.patch("/users/:email", verifyToken, async (req, res) => {
+      const email = req.params.email
+      const filter = { email }
 
+      const user = await usersCollection.findOne(filter)
+      if (!user || user?.status === 'Requested') {
+        return res
+          .status(404)
+          .send({ message: 'User not found or request is pending' })
+      }
+
+      const updateDoc = {
+        $set: {
+          status: 'Requested'
+        }
+      }
+
+      const result = await usersCollection.updateOne(filter, updateDoc)
+      res.send(result)
+    })
+
+    app.get('/users/role/:email', async (req, res) => {
+      const email = req.params.email
+      const filter = { email }
+      const user = await usersCollection.findOne(filter)
+      if (!user) {
+        return res.status(404).send({ message: 'User not found' })
+      }
+
+      res.send({ role: user?.role })
+    })
+
+    
     /**
      * Plants Api
      */
