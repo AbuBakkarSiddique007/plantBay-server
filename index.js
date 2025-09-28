@@ -113,6 +113,14 @@ async function run() {
       res.send(result)
     })
 
+    app.get('/all-users/:email', verifyToken, async (req, res) => {
+      const email = req.params.email
+      const filter = { email: { $ne: email } }
+
+      const result = await usersCollection.find(filter).toArray()
+      res.send(result)
+    })
+
     /**
      * Manage Users role
      */
@@ -148,7 +156,7 @@ async function run() {
       res.send({ role: user?.role })
     })
 
-    
+
     /**
      * Plants Api
      */
@@ -277,6 +285,8 @@ async function run() {
       const result = await ordersCollection.deleteOne(filter)
       res.send(result)
     })
+
+
 
 
     // Send a ping to confirm a successful connection
