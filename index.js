@@ -113,6 +113,7 @@ async function run() {
       res.send(result)
     })
 
+    // Get all users except logged in user in Manage Users Section
     app.get('/all-users/:email', verifyToken, async (req, res) => {
       const email = req.params.email
       const filter = { email: { $ne: email } }
@@ -120,6 +121,24 @@ async function run() {
       const result = await usersCollection.find(filter).toArray()
       res.send(result)
     })
+
+    // Update user role and status
+    app.patch('/users/role/:email', verifyToken, async (req, res) => {
+      const email = req.params.email
+      const { role } = req.body
+      const filter = { email }
+
+      const updateDoc = {
+        $set: {
+          role,
+          status: 'Verified'
+        }
+      }
+
+      const result = await usersCollection.updateOne(filter, updateDoc)
+      res.send(result)
+    })
+
 
     /**
      * Manage Users role
