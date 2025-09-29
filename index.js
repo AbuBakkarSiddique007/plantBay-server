@@ -55,6 +55,38 @@ async function run() {
     const plantsCollection = database.collection('plants')
     const ordersCollection = database.collection('orders')
 
+    // Verify Admin Middleware
+    const verifyAdmin = async (req, res, next) => {
+
+      console.log("Verifying admin...", req.user);
+
+      const email = req.user.email
+      const filter = { email }
+      const result = await usersCollection.findOne(filter)
+
+      if (!result || result.role !== 'admin') {
+        return res.status(403).send({ message: 'forbidden access! Action only Admin' })
+      }
+      console.log("Admin verified");
+      next()
+    }
+    
+    // Verify Seller Middleware
+    const verifySeller = async (req, res, next) => {
+
+      console.log("Verifying Seller...", req.user);
+
+      const email = req.user.email
+      const filter = { email }
+      const result = await usersCollection.findOne(filter)
+
+      if (!result || result.role !== 'seller') {
+        return res.status(403).send({ message: 'forbidden access! Action only  Seller' })
+      }
+      console.log("Admin verified");
+      next()
+    }
+
 
 
     // Generate jwt token
@@ -123,7 +155,7 @@ async function run() {
     })
 
     // Update user role and status
-    app.patch('/users/role/:email', verifyToken, async (req, res) => {
+    app.patch('/users/role/:email', verifyToken, verifyAdmin, async (req, res) => {
       const email = req.params.email
       const { role } = req.body
       const filter = { email }
