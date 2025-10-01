@@ -11,7 +11,11 @@ const app = express()
 
 // middleware
 const corsOptions = {
-  origin: ['http://localhost:5173', 'http://localhost:5174'],
+  origin: [
+    'http://localhost:5173',
+    'http://localhost:5174'
+  ],
+
   credentials: true,
   optionSuccessStatus: 200,
 }
@@ -70,7 +74,7 @@ async function run() {
       console.log("Admin verified");
       next()
     }
-    
+
     // Verify Seller Middleware
     const verifySeller = async (req, res, next) => {
 
@@ -145,8 +149,9 @@ async function run() {
       res.send(result)
     })
 
+    // Admin Routes
     // Get all users except logged in user in Manage Users Section
-    app.get('/all-users/:email', verifyToken, async (req, res) => {
+    app.get('/all-users/:email', verifyToken, verifyAdmin, async (req, res) => {
       const email = req.params.email
       const filter = { email: { $ne: email } }
 
@@ -211,6 +216,13 @@ async function run() {
     /**
      * Plants Api
      */
+    app.get('/plants/seller', verifyToken, verifySeller, async (req, res) => {
+      const email = req.user?.email
+      const filter = { "seller.email": email }
+      const result = await plantsCollection.find(filter).toArray()
+      res.send(result)
+    })
+
     // 2. Save plants data in db
     app.post('/plants', async (req, res) => {
       const plant = req.body
@@ -228,6 +240,13 @@ async function run() {
       const filter = { _id: new ObjectId(id) }
 
       const result = await plantsCollection.findOne(filter)
+      res.send(result)
+    })
+
+    app.delete('/plants/:id', verifyToken, verifySeller, async (req, res) => {
+      const id = req.params.id
+      const filter = { _id: new ObjectId(id) }
+      const result = await plantsCollection.deleteOne(filter)
       res.send(result)
     })
 
