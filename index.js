@@ -340,6 +340,65 @@ async function run() {
       res.send(result);
     })
 
+    // Get all orders of a specific seller
+    app.get('/manage-orders/:email', verifyToken, verifySeller, async (req, res) => {
+      const email = req.params.email;
+      const filter = { seller: email };
+
+      const result = await ordersCollection.aggregate([
+        {
+          $match: filter
+        },
+        {
+          $addFields:
+          {
+            plantId:
+            {
+              $toObjectId: "$plantInfo.plantId"
+            }
+          }
+        },
+        {
+          $lookup: {
+            from: 'plants',
+            localField: 'plantId',
+            foreignField: '_id',
+            as: 'plantDoc'
+          }
+        },
+        {
+          $unwind: "$plantDoc"
+        },
+        {
+          $addFields: {
+            name: "$plantDoc.name",
+          }
+        },
+        {
+          $project: {
+            plantDoc: 0,
+          }
+        }
+      ]).toArray();
+      res.send(result);
+    })
+
+    // Update order status by id
+    app.patch('/orders/status/:id', async (req, res) => {
+      const id = req.params.id
+      const { status } = req.body
+
+      const filter = { _id: new ObjectId(id) }
+      
+      const updateDoc = {
+        $set: {
+          status
+        }
+      }
+      const result = await ordersCollection.updateOne(filter, updateDoc)
+      res.send(result)
+    })
+
     // Handle delete order by id
     app.delete('/orders/:id', async (req, res) => {
       const id = req.params.id
