@@ -5,6 +5,7 @@ const cookieParser = require('cookie-parser')
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb')
 const jwt = require('jsonwebtoken')
 const morgan = require('morgan')
+const nodemailer = require("nodemailer");
 
 const port = process.env.PORT || 5000
 const app = express()
@@ -40,6 +41,50 @@ const verifyToken = async (req, res, next) => {
     next()
   })
 }
+
+// Nodemailer setup:
+const sendEmail = (emailAddress, emailData) => {
+  // Create a transporter object using SMTP transport
+  const transporter = nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    port: 587,
+    secure: false, // true for 465, false for other ports
+    auth: {
+      user: process.env.NODE_MAILER_USER,
+      pass: process.env.NODE_MAILER_PASS,
+    },
+  });
+
+  // Verify the connection configuration
+  transporter.verify((error, success) => {
+    if (error) {
+      console.log("Email server is not ready", error);
+    }
+    else {
+      console.log("Email server is ready to take messages", success);
+    }
+  });
+
+  // Send mail
+  const mailBody = {
+    from: process.env.NODE_MAILER_USER,
+    to: emailAddress,
+    subject: emailData?.subject || "Hello ✔", // Subject line
+    // text: emailData?.message, // plain‑text body
+    html: `<p>${emailData?.message}</p>`, // HTML body
+  }
+
+  transporter.sendMail(mailBody, (error, info) => {
+    if (error) {
+      return console.log("Error while sending email", error);
+    }
+    else {
+      console.log("Email sent successfully", info);
+      console.log('Email sent: ' + info?.response);
+    }
+  });
+}
+
 
 // Database connection
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.p62hq.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`
@@ -128,6 +173,8 @@ async function run() {
      */
     // 1. Save or Update users in db
     app.post('/users/:email', async (req, res) => {
+      sendEmail()
+
       const email = req.params.email
       const user = req.body
 
@@ -258,6 +305,23 @@ async function run() {
       const order = req.body
       console.log(order);
       const result = await ordersCollection.insertOne(order)
+
+      if (result?.insertedId) {
+        // Send order confirmation email to customer
+        const emailData = {
+          subject: "Order Placed Successfully",
+          message: `Your order for ${order?.plantInfo?.name} has been placed successfully!`
+        };
+        sendEmail(order?.userInfo?.email, emailData);
+
+        // Send new order notification email to seller
+        const sellerEmailData = {
+          subject: "New Order Received",
+          message: `You have received a new order for ${order?.plantInfo?.name}. Please check your dashboard for details.`
+        };
+        sendEmail(order?.seller, sellerEmailData);
+      }
+
       res.send(result)
     })
 
@@ -389,7 +453,7 @@ async function run() {
       const { status } = req.body
 
       const filter = { _id: new ObjectId(id) }
-      
+
       const updateDoc = {
         $set: {
           status
