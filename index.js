@@ -479,6 +479,77 @@ async function run() {
       res.send(result)
     })
 
+    // Admin stats
+    app.get('/admin-stats', verifyToken, verifyAdmin, async (req, res) => {
+      const totalUsers = await usersCollection.estimatedDocumentCount()
+      const totalPlants = await plantsCollection.estimatedDocumentCount()
+
+      const allOrders = await ordersCollection.find().toArray()
+
+      // const totalOrders = allOrders.length
+      // const totalRevenue = allOrders.reduce((sum, order) => sum + order.totalPrice, 0)
+
+      // Generate chart data
+      // Group by day, produce an ISO sortable key, but also project a display date in DD-MM-YYYY
+      const chartData = await ordersCollection.aggregate([
+        {
+          $group: {
+            _id: {
+              $dateToString: {
+                format: "%Y-%m-%d",
+                date: { $toDate: "$_id" }
+              }
+            },
+
+            quantity: { $sum: "$plantInfo.totalQuantity" },
+            price: { $sum: "$plantInfo.price" },
+            order: { $sum: 1 }
+
+          }
+        },
+        {
+          $project: {
+            _id: 0,
+
+            date: {
+              $dateToString: {
+                format: "%d-%m-%Y",
+                date: { $toDate: "$_id" }
+              }
+            },
+
+            dateISO: "$_id",
+            quantity: 1,
+            order: 1,
+            price: 1
+          }
+        },
+
+        { $sort: { dateISO: 1 } },
+
+        { $project: { dateISO: 0 } }
+      ]).toArray()
+
+      const orderDetails = await ordersCollection.aggregate([
+        {
+          $group: {
+            _id: null,
+            totalOrders: { $sum: 1 },
+            totalRevenue: { $sum: "$totalPrice" }
+          }
+        },
+        {
+          $project: {
+            _id: 0,
+          }
+        }
+      ]).next()
+
+
+      // res.send({ totalUsers, totalPlants, totalOrders, totalRevenue })
+      res.send({ totalUsers, totalPlants, ...orderDetails, chartData })
+    })
+
 
 
 
