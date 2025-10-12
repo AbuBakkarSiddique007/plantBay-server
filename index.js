@@ -6,6 +6,8 @@ const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb')
 const jwt = require('jsonwebtoken')
 const morgan = require('morgan')
 const nodemailer = require("nodemailer");
+const stripe = require('stripe')(process.env.PAYMENT_SECRET_KEY);
+
 
 const port = process.env.PORT || 5000
 const app = express()
@@ -550,6 +552,34 @@ async function run() {
       res.send({ totalUsers, totalPlants, ...orderDetails, chartData })
     })
 
+
+    // Create Payment Intent:
+    app.post('/create-payment-intent', async (req, res) => {
+
+      const { quantity, plantId } = req.body
+
+      const filter = { _id: new ObjectId(plantId) }
+      const plant = await plantsCollection.findOne(filter);
+
+      if (!plant) {
+        return res.status(404).send({ message: 'Plant not found' });
+      }
+
+      const totalPrice = plant.price * quantity;
+      const amount = Math.round(totalPrice * 100);
+      console.log("Amount:", amount);
+
+      const { client_secret } = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: 'usd',
+        automatic_payment_methods: {
+          enabled: true,
+        },
+      });
+
+      res.send({ clientSecret: client_secret })
+
+    });
 
 
 
